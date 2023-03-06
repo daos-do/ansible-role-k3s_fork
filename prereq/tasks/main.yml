@@ -59,3 +59,10 @@
     path: /etc/sudoers
     validate: 'visudo -cf %s'
   when: ansible_distribution in ['CentOS', 'Rocky', 'Red Hat Enterprise Linux']
+
+- name: get pre-requisite packages for longhorn
+  package:
+    name: 
+      - iscsi-initiator-utils
+      - nfs-utils
+    state: present
