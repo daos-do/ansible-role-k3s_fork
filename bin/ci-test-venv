@@ -1,0 +1,48 @@
+#!/bin/bash
+# file: ci-test-venv
+# Sets up a virtual environment for CI testing.
+
+set -uex
+
+mydir="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
+: "${PROJECT_REPO:=$mydir/..}"
+: "${WORKSPACE:=$PWD}"
+
+# Make sure we are not in a venv
+if command -v deactivate; then deactivate; fi
+
+test_venv="${WORKSPACE}/test_venv"
+
+rqtxt_md5sum="${WORKSPACE}/requirements.txt.md5sum"
+if [ ! -e "$rqtxt_md5sum" ]; then
+  echo "no md5sum found" > "$rqtxt_md5sum"
+fi
+if [ -e "$PROJECT_REPO/requirements.txt" ]; then
+  md5sum "$PROJECT_REPO/requirements.txt" > "${rqtxt_md5sum}.new"
+else
+  echo "no requirements.txt" > "${rqtxt_md5sum}.new"
+fi
+
+if ! diff "$rqtxt_md5sum" "$rqtxt_md5sum.new"; then
+  rm -rf "${test_venv:?"test_venv not set"}"
+fi
+
+if [ ! -e "$test_venv" ]; then
+  if ! my_python="$(command -v python3)"; then
+    echo "No python3 installation found"
+    exit 1
+  fi
+  mkdir -p "$(dirname "$test_venv")"
+  "$my_python" -m venv "$test_venv"
+fi
+set +u
+# shellcheck disable=SC1091,SC1090
+source "$test_venv/bin/activate"
+set -u
+pip --no-input --disable-pip-version-check install --upgrade pip
+if [ -e "$PROJECT_REPO/requirements.txt" ]; then
+  pip --no-input install -r "$PROJECT_REPO/requirements.txt"
+  md5sum "$PROJECT_REPO/requirements.txt" > "${rqtxt_md5sum}"
+else
+  echo "$PROJECT_REPO/requirements.txt not found!"
+fi

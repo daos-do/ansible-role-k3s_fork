@@ -1,0 +1,20 @@
+#!/bin/bash
+# file: ci-test-role
+# Test the role with molecule
+
+set -uex
+
+: "${WORKSPACE:=$PWD}"
+
+mydir="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
+: "${PROJECT_REPO:=$mydir/..}"
+
+if ! command -v ansible-galaxy; then
+  "$mydir/ci-test-venv"
+
+  # shellcheck disable=SC1091,SC1090
+  source "${WORKSPACE}/test_venv/bin/activate"
+fi
+
+cd "$PROJECT_REPO"
+molecule test

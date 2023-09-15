@@ -1,6 +1,9 @@
 galaxy_info:
   author: Ray Dennis
-
+  description: Manages K3s environment
+  role_name: k3s
+  namespace: do
+  company: Intel
   license: Apache-2.0
 
   min_ansible_version: 2.1

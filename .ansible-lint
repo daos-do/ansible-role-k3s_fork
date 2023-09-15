@@ -1,0 +1,18 @@
+---
+exclude_paths:
+  # Running in CI requires additional exclude_paths
+  # for simulated per job home directory and checking
+  # out role into repo/
+  - repo/molecule/default/converge.yml
+  - molecule/default/converge.yml
+  - test_venv/
+  - .cache/
+  - home/
+skip_list:
+  # fqcn-builtins can not be used on older ansible
+  - fqcn-builtins
+  # Galaxy metadata schemas not up to date as of 02/01/2023
+  - schema[meta]
+  - yaml[truthy]
+  - yaml[comments-indentation]
+  - package-latest

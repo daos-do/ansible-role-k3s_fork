@@ -1,0 +1,67 @@
+#
+# Copyright 2018-2023, Intel Corporation
+#
+# 'recipe' for Docker building the DCO OPT environment
+#
+
+# Pull base image
+FROM fedora:latest
+MAINTAINER DCO <dev_ops@hpdd.intel.com>
+
+# use same UID as host and default value of 1000 if not specified
+ARG UID=1000
+
+# Update distribution
+#Nothing to do for CentOS
+
+# Install basic tools
+RUN dnf install -y mock make rpm-build curl createrepo rpmlint redhat-lsb-core \
+                   git python-srpm-macros
+
+# Add build user (to keep rpmbuild happy)
+ENV USER build
+ENV PASSWD build
+RUN useradd -u $UID -ms /bin/bash $USER
+RUN echo "$USER:$PASSWD" | chpasswd
+RUN mkdir -p /home/$USER; \
+    chown $USER /home/$USER; \
+    mkdir -p /home/$USER/.ssh; \
+    echo -e "host github.com\n\
+    CheckHostIP no\n\
+    StrictHostKeyChecking no\n\
+    UserKnownHostsFile /dev/null\n\
+    LogLevel error\n\
+    Hostname ssh.github.com\n\
+    Port 443\n\
+    PreferredAuthentications publickey,keyboard-interactive\n\
+" > /home/$USER/.ssh/config
+
+# add the user to the mock group so it can run mock
+RUN usermod -a -G mock $USER
+
+# mock in Docker needs to use the old-chroot option
+RUN grep use_nspawn || \
+    echo "config_opts['use_nspawn'] = False" >> /etc/mock/site-defaults.cfg
+
+RUN chmod g+w /etc/mock/default.cfg
+
+RUN dnf install -y bandit bind-utils bzip2-devel \
+                   chkconfig clamav clamav-devel codespell curl \
+                   gcc gdbm-devel git gzip json-c-devel \
+                   libffi-devel libnsl2-devel libselinux-python3 \
+                   libyaml-devel lz4-devel \
+                   ncurses-devel openssl-devel perl \
+                   python3-clustershell python3-demjson python3-paramiko \
+                   python3-pip python3-devel \
+                   python3-pygithub python-unversioned-command \
+                   pylint \
+                   readline-devel rubygems ShellCheck sqlite-devel tk-devel \
+                   uuid-devel which xz-devel yamllint zlib-devel
+
+RUN gem install ruby-lint
+
+# Install maldetect
+COPY ./bin/install_maldet.sh /tmp/install.sh
+COPY ./bin/distro_info.sh /tmp/distro_info.sh
+RUN set -e;                                         \
+    chmod +x /tmp/install.sh /tmp/distro_info.sh && /tmp/install.sh

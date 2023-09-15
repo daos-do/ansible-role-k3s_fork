@@ -1,0 +1,49 @@
+#!/bin/bash
+# ci-docker-maldet
+
+# Script to run a malware scan in a docker container.
+
+set -uex
+
+: "${WORKSPACE:=${PWD}}"
+
+: "${DOCKER_TAG:=}"
+if [ -n "$DOCKER_TAG" ]; then
+ image_tag="$DOCKER_TAG"
+fi
+
+: "${image_tag:=${USER}_${$}:codetest}"
+cont_name="${USER}_${$}_scan1"
+
+function cleanup {
+  docker rm "${cont_name}" &> /dev/null || true
+  if [ -z "$DOCKER_TAG" ]; then
+    docker rmi "${image_tag}" || true
+  fi
+}
+
+trap cleanup EXIT
+
+mydir="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
+myuid="$(id -u)"
+
+if [[ "$(docker images -q "${image_tag}" 2> /dev/null)" == "" ]]
+then
+  pushd "$mydir/.."
+  docker build --build-arg UID="$myuid"            \
+                 --tag "${image_tag}"              \
+                 -f Dockerfile.code_scanning .
+  popd
+fi
+
+if docker run --rm --net=host                 \
+              --user "$myuid"                 \
+              --volume "$WORKSPACE:/work"     \
+              --workdir /work                 \
+              --name "${cont_name}"           \
+              "${image_tag}"                  \
+              /work/bin/ci-maldet
+then
+  echo "Malware scan complete"
+fi
+

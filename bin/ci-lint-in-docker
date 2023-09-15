@@ -1,0 +1,12 @@
+#!/bin/bash
+# ci-lint
+# This is a helper script for running linting in a docker container
+# since we need to have an evironment variable set before
+# running the script.
+
+set -uex
+
+: "${PROJECT_REPO:=$1}"
+export PROJECT_REPO
+/work/code_review/checkpatch_lint.sh
+
